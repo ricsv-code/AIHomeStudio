@@ -1,0 +1,9 @@
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.tmp
+*.swp
+output.wav
+/downloaders
+*.venv

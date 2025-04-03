@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+torch
+transformers
+pydantic
+bitsandbytes
+psutil
+accelerate
+datasets
+sentencepiece

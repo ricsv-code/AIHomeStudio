@@ -1,0 +1,79 @@
+# --- .NET ---
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.log
+*.user
+*.suo
+*.csproj.user
+.vs/
+
+# NuGet
+*.nupkg
+packages/
+*.snupkg
+
+# --- Python ---
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.pdb
+.Python
+env/
+.venv/
+venv/
+ENV/
+*.egg-info/
+*.egg
+*.manifest
+*.spec
+
+# FastAPI cache / runtime
+*.db
+*.sqlite
+*.log
+*.pid
+
+# Jupyter
+.ipynb_checkpoints
+
+# --- Models (STT, TTS, AI) ---
+stt_models/
+tts_models/
+ai_models/
+model_finetuned/
+
+# --- Audio/temp/output ---
+*.wav
+*.mp3
+*.ogg
+*.flac
+output.wav
+live_*.wav
+temp.wav
+
+# --- MAUI ---
+platforms/
+resources/
+
+# --- VS Code ---
+.vscode/
+
+# --- Rider / JetBrains ---
+.idea/
+
+# --- OS/System ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Git ---
+!.gitignore

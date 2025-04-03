@@ -1,0 +1,81 @@
+﻿<ContentPage
+    x:Class="AIHomeStudio.MainPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:AIHomeStudio"
+    BackgroundColor="White"
+    Padding="20">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="25">
+
+            <!-- AI Model -->
+            <Label Text="AI Model" FontAttributes="Bold" FontSize="16"/>
+            <Picker Title="Select AI Model"
+                    ItemsSource="{Binding AI.AvailableModels}"
+                    SelectedItem="{Binding AI.ChosenModel}" />
+            <Button Text="Load AI Model" 
+                    Command="{Binding LoadAIModelCommand}" 
+                    BackgroundColor="#6200EE" TextColor="White"/>
+
+            <!-- STT -->
+            <Label Text="Speech-to-Text Model" FontAttributes="Bold" FontSize="16"/>
+            <Picker Title="Select STT Model"
+                    ItemsSource="{Binding STT.AvailableModels}"
+                    SelectedItem="{Binding STT.ChosenModel}" />
+            <Button Text="Load STT Model"
+                    Command="{Binding LoadSTTModelCommand}"
+                    BackgroundColor="#6200EE" TextColor="White"/>
+
+            <!-- TTS -->
+            <Label Text="Text-to-Speech Model" FontAttributes="Bold" FontSize="16"/>
+            <Picker Title="Select TTS Model"
+                    ItemsSource="{Binding TTS.AvailableModels}"
+                    SelectedItem="{Binding TTS.ChosenModel}" />
+            <Button Text="Load TTS Model"
+                    Command="{Binding LoadTTSModelCommand}"
+                    BackgroundColor="#6200EE" TextColor="White"/>
+
+            <!-- System Prompt -->
+            <Label Text="System Prompt" FontAttributes="Bold" FontSize="16"/>
+            <Editor Text="{Binding AI.SystemPrompt}" 
+                    AutoSize="TextChanges"
+                    BackgroundColor="#f3f3f3"
+                    HeightRequest="100"/>
+
+            <!-- AI Params -->
+            <Label Text="Temperature" />
+            <Slider Minimum="0" Maximum="1" 
+                    Value="{Binding AI.Temperature}" 
+                    ThumbColor="#6200EE" />
+
+            <Label Text="Top P" />
+            <Slider Minimum="0" Maximum="1" 
+                    Value="{Binding AI.TopP}"
+                    ThumbColor="#6200EE" />
+
+            <Label Text="Max Tokens" />
+            <Entry Text="{Binding AI.MaxTokens}" Keyboard="Numeric" />
+
+            <!-- Conversation -->
+            <Label Text="Conversation" FontAttributes="Bold" FontSize="16"/>
+            <CollectionView ItemsSource="{Binding Chat.Memory}" 
+                            HeightRequest="200">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Label Text="{Binding Text}" 
+                               Padding="5"
+                               BackgroundColor="#eaeaea"
+                               Margin="0,5"/>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Input -->
+            <Entry Text="{Binding Chat.CurrentPrompt}" Placeholder="Write something..." />
+            <Button Text="Send" 
+                    Command="{Binding SendCommand}" 
+                    BackgroundColor="#6200EE" TextColor="White"/>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
