@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-torch
+torch==2.5.1+cu121
 transformers
 pydantic
 bitsandbytes
@@ -8,3 +8,5 @@ psutil
 accelerate
 datasets
 sentencepiece
+vosk
+python-multipart
