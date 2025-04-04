@@ -82,6 +82,9 @@
 		</Content>
 
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Python\tts_models\" />
+	</ItemGroup>
 
 
 

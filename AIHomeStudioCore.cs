@@ -23,11 +23,21 @@ namespace AIHomeStudio
 
         #endregion
 
+        #region Commands
+
+        public ICommand SendCommand { get; private set; }
+        public ICommand StartListeningCommand { get; private set; }
+        public ICommand StopListeningCommand { get; private set; }
+
+        #endregion
+
         #region Constructor
         public AIHomeStudioCore()
         {
             SendCommand = new RelayCommand(Send);
 
+            StartListeningCommand = new RelayCommand(async () => await StartListeningAsync());
+            StopListeningCommand = new RelayCommand(async () => await StopListeningAsync());
 
 
 
@@ -41,80 +51,40 @@ namespace AIHomeStudio
         public ChatViewModel Chat { get; private set; } = new();
         public AIViewModel AI { get; private set; } = new();
 
-        public ICommand LoadAIModelCommand { get; private set; }
-        public ICommand LoadSTTModelCommand { get; private set; }
-        public ICommand LoadTTSModelCommand { get; private set; }
-        public ICommand SendCommand { get; private set; }
 
         #endregion
 
+
+
         #region Methods
 
+        // Buttons
 
-        private async void TTSBufferManager_OnBufferReady(object? sender, string e)
-        {
-            await ServiceManager.TTSService.SpeakAsync(e);
-        }
-
-        private void AIService_OnTokenReceived(object? sender, string token)
-        {
-            if (token == "[END]")
-            {
-                Chat.AppendMemory(Chat.AIPrefix, Chat.CurrentResponse);
-                Chat.CurrentResponse = "";
-                _isAwaitingResponse = false;
-
-                _ttsBuffer.Reset();
-                return;
-            }
-
-            Chat.CurrentResponse += token;
-
-            if (TTS.IsTTSReady)
-            {
-                _ttsBuffer.PushToken(token);
-            }
-        }
-
-        private void STTService_OnSpeechRecognized(object? sender, string e)
-        {
-            if (_isAwaitingResponse)
-                return;
-
-            STT.CurrentSpeech = e;
-            Chat.CurrentPrompt += e;
-
-            Chat.AppendMemory("User", Chat.CurrentPrompt);
-
-            _isAwaitingResponse = true;
-            Chat.CurrentResponse = "";
-
-            ServiceManager.AIService.AskAIStreamedAsync(Chat.CurrentPrompt);
-            Chat.CurrentPrompt = "";
-        }
-
-        // AI
 
 
         private async void Send(object sender)
         {
-            await ServiceManager.AIService.AskAIStreamedAsync(Chat.CurrentPrompt);
+            await ServiceManager.AIService.AskAIStreamedAsync(
+                Chat.CurrentPrompt, 
+                AI.SystemPrompt, 
+                AI.Temperature,
+                AI.TopP,
+                AI.MaxTokens
+                );
+
+            _isAwaitingResponse = true;
         }
-
-        // STT
-
-
-        public async Task StartListeningAsync()
+        private async Task StartListeningAsync()
         {
             await ServiceManager.STTService.StartListeningAsync();
         }
 
-        public async Task StopListeningAsync()
+        private async Task StopListeningAsync()
         {
             await ServiceManager.STTService.StopListeningAsync();
         }
 
-        // TTS
+
 
 
 
@@ -142,21 +112,27 @@ namespace AIHomeStudio
             ServiceManager.OnServiceEvent += ServiceManager_OnServiceEvent;
 
 
-            
-
-
 
 
 
             AI.ChosenModel = AI.AvailableModels?.FirstOrDefault();
             STT.ChosenModel = STT.AvailableModels?.FirstOrDefault();
             TTS.ChosenModel = TTS.AvailableModels?.FirstOrDefault();
+            
         }
 
+
+        // ServiceEvents
         private void ServiceManager_OnServiceEvent(object? sender, Services.ServiceEventArgs e)
         {
             if (sender is not ServiceBase service)
                 return;
+
+            if (e.EventType == ServiceEventType.Error)
+            {
+                HandleError(e);
+                return;
+            }
 
             switch (service.ServiceType)
             {
@@ -178,25 +154,55 @@ namespace AIHomeStudio
         }
 
 
+        // Handle error
+        private void HandleError(ServiceEventArgs e)
+        {
+            Chat.ErrorMessage += $"{e.Message}\n";
+        }
+
+
         // AI Event
         private void HandleAIEvent(ServiceEventArgs e)
         {
             switch (e.EventType)
             {
                 case ServiceEventType.LoadProgress:
-
                     AI.LoadingText = e.Message;
-
                     break;
                 case ServiceEventType.TokenReceived:
 
-                    Chat.CurrentResponse += e.Message;
+                    string token = e.Message;
+
+                    if (token == "[END]")
+                    {
+                        Chat.AppendMemory(Chat.AIPrefix, Chat.CurrentResponse);
+                        Chat.CurrentResponse = "";
+                        _isAwaitingResponse = false;
+
+                        _ttsBuffer.Reset();
+                        return;
+                    }
+
+                    Chat.CurrentResponse += token;
+
+                    if (TTS.IsTTSReady)
+                    {
+                        _ttsBuffer.PushToken(token);
+                    }
+
+                    break;
+                case ServiceEventType.RequestSent:
+
+                    AI.InfoText = e.Message;
+
+                    break;
+
+                case ServiceEventType.Info:
 
                     break;
 
                 default:
                     break;
-
             }
         }
 
@@ -206,20 +212,28 @@ namespace AIHomeStudio
         {
             switch (e.EventType)
             {
-                case ServiceEventType.LoadProgress:
+                case ServiceEventType.RequestSent:
 
-                    AI.LoadingText = e.Message;
+                    TTS.InfoText = e.Message;
 
                     break;
-                case ServiceEventType.TokenReceived:
+                case ServiceEventType.LoadProgress:
 
-                    
+                    TTS.LoadingText = e.Message;
+
+                    break;
+                case ServiceEventType.Info:
+
+                    if (e.Message == "[TTS] Model loaded.")
+                        TTS.IsTTSReady = true;
+
+
+                    TTS.InfoText = e.Message;
 
                     break;
 
                 default:
                     break;
-
             }
         }
 
@@ -228,24 +242,42 @@ namespace AIHomeStudio
         {
             switch (e.EventType)
             {
+                case ServiceEventType.RequestSent:
+
+                    STT.InfoText = e.Message;
+                    break;
                 case ServiceEventType.LoadProgress:
 
                     STT.LoadingText = e.Message;
+                    break;
+                case ServiceEventType.Info:
+
+                    if (e.Message == "[STT] End of speech detected.")
+                        Send(this);
+
+                        STT.InfoText = e.Message;
 
                     break;
                 case ServiceEventType.TokenReceived:
 
-                    
-
+                    Chat.CurrentPrompt += e.Message;
+                    STT.CurrentSpeech = e.Message;
                     break;
-
                 default:
                     break;
-
             }
         }
 
 
+
+        // TTS buffer
+        private async void TTSBufferManager_OnBufferReady(object? sender, string e)
+        {
+            await ServiceManager.TTSService.SpeakAsync(e);
+        }
+
+
+        // clean
         public void Cleanup()
         {
             _initializer.Cleanup();

@@ -1,4 +1,4 @@
-﻿using AIHomeStudio.Utilities
+﻿using AIHomeStudio.Utilities;
 
 namespace AIHomeStudio.Models
 {
@@ -48,7 +48,12 @@ namespace AIHomeStudio.Models
         }
 
 
-
+        private string _infoText = "";
+        public string InfoText
+        {
+            get => _infoText;
+            set => SetProperty(ref _infoText, value);
+        }
 
 
 

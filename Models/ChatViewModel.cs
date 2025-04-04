@@ -13,6 +13,7 @@ namespace AIHomeStudio.Models
 
         private string _currentPrompt = "";
         private string _currentResponse = "";
+        private string _errorMessage = "";
         private string _userPrefix = "GPT4 Correct User: ";
         private string _aiPrefix = "GPT4 Correct Assistant: ";
         private string _eot = "<|end_of_turn|>";
@@ -35,6 +36,13 @@ namespace AIHomeStudio.Models
             set => SetProperty(ref _currentResponse, value);
         }
 
+        // error
+
+        public string ErrorMessage
+        {
+            get => _errorMessage;
+            set => SetProperty(ref _errorMessage, value);
+        }
 
         // prefix
 

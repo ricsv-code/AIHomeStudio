@@ -6,34 +6,16 @@ using AIHomeStudio.Models;
 
 namespace AIHomeStudio.Services
 {
-    public abstract class ServiceBase
+    public static class ServiceHelper
     {
-
-        public event EventHandler<ServiceEventArgs>? OnServiceEvent;
-
-        public ServiceType ServiceType { get; }
-        protected readonly HttpClient _httpClient = new();
-        protected string _baseUrl = "http://localhost:8000";
-
-        protected ServiceBase(ServiceType type, int port)
-        {
-            ServiceType = type;
-            _baseUrl = $"http://localhost:{port}";
-        }
-
-
-        protected void RaiseEvent(ServiceEventType eventType, string message)
-        {
-            OnServiceEvent?.Invoke(this, new ServiceEventArgs(eventType, $"[{ServiceType}] {message}"));
-        }
-
-
-        protected async Task<T?> SendRequestAsync<T>(
-            HttpMethod method, 
+        public static async Task<T?> SendRequestAsync<T>(
+            string baseUrl, 
             string endpoint, 
-            object? payload = null
+            ServiceType serviceType, 
+            EventHandler<ServiceEventArgs>? onServiceEvent, 
+            HttpMethod method, object? payload = null
             )
-            where T : class 
+            where T : class
         {
             try
             {
@@ -45,18 +27,18 @@ namespace AIHomeStudio.Services
                     content = new StringContent(json, Encoding.UTF8, "application/json");
                 }
 
-                var request = new HttpRequestMessage(method, $"{_baseUrl}{endpoint}")
+                var request = new HttpRequestMessage(method, $"{baseUrl}{endpoint}")
                 {
                     Content = content
                 };
 
-                RaiseEvent(ServiceEventType.RequestSent, endpoint);
+                onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.RequestSent, endpoint));
 
-                using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                using var response = await new HttpClient().SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 if (!response.IsSuccessStatusCode)
                 {
                     string errorMessage = await ErrorHandler.GetErrorMessageFromResponse(response);
-                    RaiseEvent(ServiceEventType.Error, $"Request failed: {errorMessage}");
+                    onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.Error, $"[{serviceType}] Request failed: {errorMessage}"));
                     return null;
                 }
 
@@ -65,26 +47,27 @@ namespace AIHomeStudio.Services
             }
             catch (HttpRequestException ex)
             {
-                RaiseEvent(ServiceEventType.Error, $"Network error: {ex.Message}");
+                onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.Error, $"[{serviceType}] Network error: {ex.Message}"));
                 return null;
             }
             catch (JsonException ex)
             {
-                RaiseEvent(ServiceEventType.Error, $"JSON parsing error: {ex.Message}");
+                onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.Error, $"[{serviceType}] JSON parsing error: {ex.Message}"));
                 return null;
             }
             catch (Exception ex)
             {
-                RaiseEvent(ServiceEventType.Error, $"Unexpected error: {ex.Message}");
+                onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.Error, $"[{serviceType}] Unexpected error: {ex.Message}"));
                 return null;
             }
         }
 
-
-        protected async Task<string?> SendStreamingRequestAsync(
-            HttpMethod method, 
+        public static async Task<string?> SendStreamingRequestAsync(
+            string baseUrl, 
             string endpoint, 
-            object? payload = null, 
+            ServiceType serviceType, 
+            EventHandler<ServiceEventArgs>? onServiceEvent, 
+            HttpMethod method, object? payload = null, 
             Action<string>? onTokenReceived = null
             )
         {
@@ -98,18 +81,18 @@ namespace AIHomeStudio.Services
                     content = new StringContent(json, Encoding.UTF8, "application/json");
                 }
 
-                var request = new HttpRequestMessage(method, $"{_baseUrl}{endpoint}")
+                var request = new HttpRequestMessage(method, $"{baseUrl}{endpoint}")
                 {
                     Content = content
                 };
 
-                RaiseEvent(ServiceEventType.RequestSent, endpoint);
+                onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.RequestSent, endpoint));
 
-                using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                using var response = await new HttpClient().SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 if (!response.IsSuccessStatusCode)
                 {
                     string errorMessage = await ErrorHandler.GetErrorMessageFromResponse(response);
-                    RaiseEvent(ServiceEventType.Error, $"Streaming request failed: {errorMessage}");
+                    onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.Error, $"[{serviceType}] Streaming request failed: {errorMessage}"));
                     return null;
                 }
 
@@ -127,7 +110,7 @@ namespace AIHomeStudio.Services
                         string token = buffer[0].ToString();
                         responseBuilder.Append(token);
                         onTokenReceived?.Invoke(token); 
-                        RaiseEvent(ServiceEventType.TokenReceived, token);
+                        onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.TokenReceived, token));
                     }
                 }
 
@@ -135,50 +118,54 @@ namespace AIHomeStudio.Services
             }
             catch (HttpRequestException ex)
             {
-                RaiseEvent(ServiceEventType.Error, $"Network error during streaming: {ex.Message}");
+                onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.Error, $"[{serviceType}] Network error during streaming: {ex.Message}"));
                 return null;
             }
             catch (JsonException ex)
             {
-                RaiseEvent(ServiceEventType.Error, $"JSON parsing error during streaming: {ex.Message}");
+                onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.Error, $"[{serviceType}] JSON parsing error during streaming: {ex.Message}"));
                 return null;
             }
             catch (Exception ex)
             {
-                RaiseEvent(ServiceEventType.Error, $"Unexpected error during streaming: {ex.Message}");
+                onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.Error, $"[{serviceType}] Unexpected error during streaming: {ex.Message}"));
                 return null;
             }
         }
 
-
-        protected async Task<List<string>?> GetModelsAsync(string endpoint)
+        public static async Task<List<string>?> GetModelsAsync(
+            string baseUrl, 
+            string endpoint, 
+            ServiceType serviceType, 
+            EventHandler<ServiceEventArgs>? onServiceEvent)
         {
-            StringListResponse? response = await SendRequestAsync<StringListResponse>(HttpMethod.Get, endpoint);
-            return response?.Models;
+            var result = await SendRequestAsync<StringListResponse>(baseUrl, endpoint, serviceType, onServiceEvent, HttpMethod.Get);
+            return result?.Models;
         }
 
-
-        protected async Task<bool> LoadModelStreamingAsync(
+        public static async Task<bool> LoadModelStreamingAsync(
+            string baseUrl, 
             string endpoint, 
-            object payload, 
-            Action<string>? onProgress
+            ServiceType serviceType, 
+            EventHandler<ServiceEventArgs>? onServiceEvent, 
+            object payload, Action<string>? onProgress
             )
         {
             try
             {
                 string? json = JsonConvert.SerializeObject(payload);
-                var request = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}{endpoint}")
+                var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}{endpoint}")
                 {
                     Content = new StringContent(json, Encoding.UTF8, "application/json")
                 };
 
-                RaiseEvent(ServiceEventType.RequestSent, endpoint);
+                onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.RequestSent, endpoint));
 
-                using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                using var response = await new HttpClient().SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 if (!response.IsSuccessStatusCode)
                 {
                     string errorMessage = await ErrorHandler.GetErrorMessageFromResponse(response);
-                    RaiseEvent(ServiceEventType.Error, $"Model load failed: {errorMessage}");
+                    onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.Error, $"[{serviceType}] Model load failed: {errorMessage}"));
                     return false;
                 }
 
@@ -191,26 +178,26 @@ namespace AIHomeStudio.Services
                     if (!string.IsNullOrWhiteSpace(line))
                     {
                         onProgress?.Invoke(line);
-                        RaiseEvent(ServiceEventType.LoadProgress, line);
+                        onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.LoadProgress, line));
                     }
                 }
 
-                RaiseEvent(ServiceEventType.Info, $"Model loaded.");
+                onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.Info, $"[{serviceType}] Model loaded."));
                 return true;
             }
             catch (HttpRequestException ex)
             {
-                RaiseEvent(ServiceEventType.Error, $"Network error loading model: {ex.Message}");
+                onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.Error, $"[{serviceType}] Network error loading model: {ex.Message}"));
                 return false;
             }
             catch (JsonException ex)
             {
-                RaiseEvent(ServiceEventType.Error, $"JSON parsing error loading model: {ex.Message}");
+                onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.Error, $"[{serviceType}] JSON parsing error loading model: {ex.Message}"));
                 return false;
             }
             catch (Exception ex)
             {
-                RaiseEvent(ServiceEventType.Error, $"Unexpected error loading model: {ex.Message}");
+                onServiceEvent?.Invoke(null, new ServiceEventArgs(ServiceEventType.Error, $"[{serviceType}] Unexpected error loading model: {ex.Message}"));
                 return false;
             }
         }

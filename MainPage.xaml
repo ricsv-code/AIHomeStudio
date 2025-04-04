@@ -6,76 +6,115 @@
     BackgroundColor="White"
     Padding="20">
 
-    <ScrollView>
-        <VerticalStackLayout Spacing="25">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
-            <!-- AI Model -->
-            <Label Text="AI Model" FontAttributes="Bold" FontSize="16"/>
-            <Picker Title="Select AI Model"
-                    ItemsSource="{Binding AI.AvailableModels}"
-                    SelectedItem="{Binding AI.ChosenModel}" />
-            <Button Text="Load AI Model" 
-                    Command="{Binding LoadAIModelCommand}" 
-                    BackgroundColor="#6200EE" TextColor="White"/>
+        <VerticalStackLayout Grid.Row="0" Spacing="10">
+            <Label Text="AI Settings" FontAttributes="Bold" FontSize="16" />
+            <HorizontalStackLayout Spacing="10">
+                <VerticalStackLayout>
+                    <Label Text="AI Model" />
+                    <Picker Title="Select AI Model"
+                            ItemsSource="{Binding AI.AvailableModels}"
+                            SelectedItem="{Binding AI.ChosenModel}" />
+                    <Label Text="{Binding AI.LoadingText}"/>
+                    <Label Text="{Binding AI.InfoText}"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout>
+                    <Label Text="System Prompt" />
+                    <Editor Text="{Binding AI.SystemPrompt}"
+                            AutoSize="TextChanges"
+                            HeightRequest="80" />
+                </VerticalStackLayout>
+                <VerticalStackLayout>
+                    <Label Text="Temperature" />
+                    <Slider Minimum="0"
+                            Maximum="1"
+                            Value="{Binding AI.Temperature}"
+                            ThumbColor="#6200EE" />
+                    <Label Text="Top P" />
+                    <Slider Minimum="0"
+                            Maximum="1"
+                            Value="{Binding AI.TopP}"
+                            ThumbColor="#6200EE" />
+                    <Label Text="Max Tokens" />
+                    <Entry Text="{Binding AI.MaxTokens}"
+                           Keyboard="Numeric" />
+                </VerticalStackLayout>
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
 
-            <!-- STT -->
-            <Label Text="Speech-to-Text Model" FontAttributes="Bold" FontSize="16"/>
-            <Picker Title="Select STT Model"
-                    ItemsSource="{Binding STT.AvailableModels}"
-                    SelectedItem="{Binding STT.ChosenModel}" />
-            <Button Text="Load STT Model"
-                    Command="{Binding LoadSTTModelCommand}"
-                    BackgroundColor="#6200EE" TextColor="White"/>
-
-            <!-- TTS -->
-            <Label Text="Text-to-Speech Model" FontAttributes="Bold" FontSize="16"/>
-            <Picker Title="Select TTS Model"
-                    ItemsSource="{Binding TTS.AvailableModels}"
-                    SelectedItem="{Binding TTS.ChosenModel}" />
-            <Button Text="Load TTS Model"
-                    Command="{Binding LoadTTSModelCommand}"
-                    BackgroundColor="#6200EE" TextColor="White"/>
-
-            <!-- System Prompt -->
-            <Label Text="System Prompt" FontAttributes="Bold" FontSize="16"/>
-            <Editor Text="{Binding AI.SystemPrompt}" 
-                    AutoSize="TextChanges"
-                    BackgroundColor="#f3f3f3"
-                    HeightRequest="100"/>
-
-            <!-- AI Params -->
-            <Label Text="Temperature" />
-            <Slider Minimum="0" Maximum="1" 
-                    Value="{Binding AI.Temperature}" 
-                    ThumbColor="#6200EE" />
-
-            <Label Text="Top P" />
-            <Slider Minimum="0" Maximum="1" 
-                    Value="{Binding AI.TopP}"
-                    ThumbColor="#6200EE" />
-
-            <Label Text="Max Tokens" />
-            <Entry Text="{Binding AI.MaxTokens}" Keyboard="Numeric" />
-
-            <!-- Conversation -->
-            <Label Text="Conversation" FontAttributes="Bold" FontSize="16"/>
-            <CollectionView ItemsSource="{Binding Chat.Memory}" 
+        <VerticalStackLayout Grid.Row="1">
+            <Label Text="Conversation"
+                   FontAttributes="Bold"
+                   FontSize="16" />
+            <CollectionView ItemsSource="{Binding Chat.Memory}"
                             HeightRequest="200">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Label Text="{Binding Text}" 
-                               Padding="5"
-                               BackgroundColor="#eaeaea"
-                               Margin="0,5"/>
+                        <VerticalStackLayout>
+                            <Label Text="{Binding Role}"
+                                   FontAttributes="Bold" />
+                            <Label Text="{Binding Text}" />
+                        </VerticalStackLayout>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
-
-            <!-- Input -->
-            <Entry Text="{Binding Chat.CurrentPrompt}" Placeholder="Write something..." />
-            <Button Text="Send" 
-                    Command="{Binding SendCommand}" 
-                    BackgroundColor="#6200EE" TextColor="White"/>
+            <ListView ItemsSource="{Binding Chat.ErrorMessages}"
+                      HeightRequest="100">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <TextCell Text="{Binding}"
+                                  TextColor="Red" />
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
         </VerticalStackLayout>
-    </ScrollView>
+
+        <VerticalStackLayout Grid.Row="2">
+            <Entry Text="{Binding Chat.CurrentPrompt}"
+                   Placeholder="Write something..." />
+            <Button Text="Send"
+                    Command="{Binding SendCommand}"
+                    BackgroundColor="#6200EE"
+                    TextColor="White" />
+            <HorizontalStackLayout Spacing="10">
+                <VerticalStackLayout>
+                    <Label Text="STT"
+                           FontAttributes="Bold"
+                           FontSize="16" />
+                    <Picker Title="Select STT Model"
+                            ItemsSource="{Binding STT.AvailableModels}"
+                            SelectedItem="{Binding STT.ChosenModel}" />
+                    <Label Text="{Binding STT.LoadingText}"/>
+                    <Label Text="{Binding STT.InfoText}"/>
+                    <Label Text="{Binding STT.CurrentSpeech}"/>
+                    <Button Text="Start Listening"
+                            Command="{Binding StartListeningCommand}"
+                            BackgroundColor="Green"
+                            TextColor="White" />
+                    <Button Text="Stop Listening"
+                            Command="{Binding StopListeningCommand}"
+                            BackgroundColor="Red"
+                            TextColor="White" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout>
+                    <Label Text="TTS"
+                           FontAttributes="Bold"
+                           FontSize="16" />
+                    <Picker Title="Select TTS Model"
+                            ItemsSource="{Binding TTS.AvailableModels}"
+                            SelectedItem="{Binding TTS.ChosenModel}" />
+                    <Label Text="{Binding TTS.LoadingText}"/>
+                    <Label Text="{Binding TTS.InfoText}"/>
+                    <Label Text="{Binding TTS.IsTTSReady}"/>
+                </VerticalStackLayout>
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+    </Grid>
 </ContentPage>

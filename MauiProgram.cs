@@ -13,7 +13,7 @@ namespace AIHomeStudio
             var builder = MauiApp.CreateBuilder();
 
             builder
-                .UseMauiApp<App>() 
+                .UseMauiApp<App>()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -26,14 +26,13 @@ namespace AIHomeStudio
 
             builder.Services.AddSingleton<MainPage>(provider =>
             {
-                var core = provider.GetRequiredService<AIHomeStudioCore>();
-                return new MainPage(core);
+                _core = provider.GetRequiredService<AIHomeStudioCore>();
+                return new MainPage(_core);
             });
 
             builder.Services.AddSingleton<App>();
-                        
 
-            AppDomain.CurrentDomain.ProcessExit += (_, _) => _core?.Cleanup();
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => _core?.Cleanup(); 
 
 #if DEBUG
             builder.Logging.AddDebug();

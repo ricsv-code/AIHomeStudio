@@ -38,22 +38,29 @@ namespace AIHomeStudio.Utilities
 
         public void StartFastApiServer(int port)
         {
-
-
             try
             {
                 string workingDir = Path.Combine(AppContext.BaseDirectory, "Python");
                 string pythonExe = Path.Combine(workingDir, ".venv", "Scripts", "python.exe");
 
+                UIHooks.SplashLog($"[StartFastApiServer] Working directory: {workingDir}");
+                UIHooks.SplashLog($"[StartFastApiServer] Python executable: {pythonExe}");
+
+                if (!File.Exists(pythonExe))
+                {
+                    UIHooks.SplashLog($"[ERROR] Python executable not found: {pythonExe}");
+                    return; 
+                }
+
                 var startInfo = new ProcessStartInfo
                 {
-                    FileName = pythonExe,
-                    Arguments = $"-m uvicorn APIServer:app --host 127.0.0.1 --port {port}",
+                    FileName = pythonExe, 
+                    Arguments = $"-m uvicorn api_server:app --host 127.0.0.1 --port {port}",
                     WorkingDirectory = workingDir,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
-                    CreateNoWindow = false
+                    CreateNoWindow = true
                 };
 
                 _fastApiProcess = Process.Start(startInfo);
@@ -105,8 +112,7 @@ namespace AIHomeStudio.Utilities
             try
             {
                 UIHooks.SplashLog("Loading AI models...");
-                var aiPath = Path.Combine(AppContext.BaseDirectory, "Python", "ai_models");
-                ai.AvailableModels = FileManager.GetAllFolderNamesFrom(aiPath);
+                ai.AvailableModels = await ServiceManager.AIService.GetAvailableModelsAsync();
 
                 UIHooks.SplashLog("Loading STT models...");
                 stt.AvailableModels = await ServiceManager.STTService.GetAvailableModelsAsync();
@@ -122,22 +128,6 @@ namespace AIHomeStudio.Utilities
             }
         }
 
-        public void Cleanup()
-        {
-            try
-            {
-                if (_fastApiProcess != null && !_fastApiProcess.HasExited)
-                {
-                    _fastApiProcess.Kill(true);
-                    _fastApiProcess.Dispose();
-                    UIHooks.SplashLog("FastAPI-server killed.");
-                }
-            }
-            catch (Exception ex)
-            {
-                UIHooks.SplashLog($"Failed to kill FastAPI server: {ex.Message}");
-            }
-        }
 
         private void KillProcessUsingPort(int port)
         {
@@ -181,6 +171,53 @@ namespace AIHomeStudio.Utilities
                 UIHooks.SplashLog($"No process is using port {port}.");
             }
         }
+
+
+
+        public void Cleanup()
+        {
+            try
+            {
+                if (_fastApiProcess != null && !_fastApiProcess.HasExited)
+                {
+                    try
+                    {
+                        _fastApiProcess.Kill(true); 
+                        if (!_fastApiProcess.WaitForExit(5000)) 
+                        {
+                            UIHooks.SplashLog("FastAPI-server did not exit in time.");
+                        }
+                        else
+                        {
+                            UIHooks.SplashLog("FastAPI-server killed.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        UIHooks.SplashLog($"Failed to kill FastAPI server: {ex.Message}");
+                    }
+                    finally
+                    {
+                        if (_fastApiProcess != null)
+                        {
+                            string errorOutput = _fastApiProcess.StandardError.ReadToEnd();
+                            if (!string.IsNullOrEmpty(errorOutput))
+                            {
+                                UIHooks.SplashLog($"[PY ERR - Cleanup] {errorOutput}");
+                            }
+                            _fastApiProcess.Dispose();
+                            _fastApiProcess = null;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                UIHooks.SplashLog($"[Cleanup FATAL] {ex.Message}");
+            }
+        }
+
+
 
 
     }

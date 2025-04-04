@@ -24,6 +24,15 @@ namespace AIHomeStudio.Models
         }
 
 
+        private string _infoText = "";
+        public string InfoText
+        {
+            get => _infoText;
+            set => SetProperty(ref _infoText, value);
+        }
+
+
+
         // MODEL
 
         private List<string> _availableModels = new();

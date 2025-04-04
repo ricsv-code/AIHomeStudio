@@ -1,15 +1,16 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
 using System.Diagnostics;
+using AIHomeStudio.Utilities;
+using AIHomeStudio.Models;
 
 namespace AIHomeStudio.Services
 {
     public class AIService : ServiceBase
     {
-        private static readonly HttpClient _httpClient = new();
         private string _baseUrl = "http://localhost:8000";
 
-        public AIService(int port) : base(ServiceType.AI)
+        public AIService(int port) : base(ServiceType.AI, port)
         {
             _baseUrl = $"http://localhost:{port}";
         }
@@ -19,7 +20,8 @@ namespace AIHomeStudio.Services
             string systemPrompt = "",
             float temperature = 0.6f,
             float topP = 0.6f,
-            int maxTokens = 100)
+            int maxTokens = 100,
+            Action<string>? onTokenReceived = null)
         {
             var payload = new
             {
@@ -30,83 +32,25 @@ namespace AIHomeStudio.Services
                 max_new_tokens = maxTokens
             };
 
-            var json = JsonConvert.SerializeObject(payload);
-            var request = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/generate_stream")
-            {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
-            };
-
-            RaiseEvent(ServiceEventType.RequestSent, "/generate_stream");
-
-
-            var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-            if (!response.IsSuccessStatusCode)
-            {
-                RaiseEvent(ServiceEventType.Error, "[AI] Generative stream request failed.");
-                return;
-            }
-
-            using var stream = await response.Content.ReadAsStreamAsync();
-            using var reader = new StreamReader(stream);
-
-            char[] buffer = new char[1];
-            while (!reader.EndOfStream)
-            {
-                int read = await reader.ReadAsync(buffer, 0, 1);
-                if (read > 0)
-                {
-                    RaiseEvent(ServiceEventType.TokenReceived, buffer[0].ToString());
-                }
-            }
-
-            RaiseEvent(ServiceEventType.TokenReceived, "[END]");
+            await SendStreamingRequestAsync(HttpMethod.Post, "/ai/generate_stream", payload, onTokenReceived);
         }
 
-        public async Task<bool> LoadModelAsync(string modelPath)
+        public async Task<bool> LoadModelAsync(string modelName, Action<string>? onProgress = null)
         {
+            string modelPath = Path.Combine(AppContext.BaseDirectory, "Python", "ai_models", modelName);
             var payload = new { path = modelPath };
-            var json = JsonConvert.SerializeObject(payload);
-
-            
-            var request = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/load_model")
-            {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
-            };
-
-            RaiseEvent(ServiceEventType.RequestSent, "/load_model");
-
-
-            var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-            if (!response.IsSuccessStatusCode)
-            {
-                RaiseEvent(ServiceEventType.Error, "[AI] Model failed to load.");
-                return false;
-            }
-
-            using var stream = await response.Content.ReadAsStreamAsync();
-            using var reader = new StreamReader(stream);
-
-            while (!reader.EndOfStream)
-            {
-                var line = await reader.ReadLineAsync();
-                if (!string.IsNullOrWhiteSpace(line))
-                    RaiseEvent(ServiceEventType.LoadProgress, line);
-            }
-
-            return true;
+            return await LoadModelStreamingAsync("/ai/load", payload, onProgress);
         }
 
         public async Task<bool> CheckModelStatusAsync()
         {
-            var response = await _httpClient.GetAsync($"{_baseUrl}/model/status");
-            if (!response.IsSuccessStatusCode)
-                return false;
+            var result = await SendRequestAsync<dynamic>(HttpMethod.Get, "/ai/status");
+            return result?.loaded == true;
+        }
 
-            RaiseEvent(ServiceEventType.RequestSent, "/model/status");
-
-            var result = await response.Content.ReadAsStringAsync();
-            dynamic parsed = JsonConvert.DeserializeObject(result);
-            return parsed?.loaded == true;
+        public async Task<List<string>?> GetAvailableModelsAsync()
+        {
+            return await GetModelsAsync("/ai/models");
         }
     }
 }
