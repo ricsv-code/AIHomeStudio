@@ -70,7 +70,7 @@
 
 	<!-- Splash -->
 	<ItemGroup>
-		<MauiXaml Update="SplashPage.xaml">
+		<MauiXaml Update="Views\SplashPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 	</ItemGroup>

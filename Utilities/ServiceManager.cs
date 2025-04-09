@@ -3,59 +3,56 @@ using Plugin.Maui.Audio;
 
 namespace AIHomeStudio.Utilities
 {
-    public static class ServiceManager
+    public class ServiceManager
     {
 
         #region Fields
 
-        private static readonly object _lock = new();
-        private static int _port;
-        private static IAudioManager? _audioManager;
+        private readonly object _lock = new();
 
-        private static AIService? _aiService;
-        private static STTService? _sttService;
-        private static TTSService? _ttsService;
 
-        private static List<ServiceBase> _services;
+        private ILocalAIService? _aiService;
+        private ISTTService? _sttService;
+        private ITTSService? _ttsService;
+        private ICloudService? _cloudService;
 
-        private static bool _initialized = false;
+        private IFastAPIService? _fastAPIService;
+
+        private List<object> _services;
+
+        private bool _initialized = false;
 
         #endregion
 
         #region Constructor
 
-        public static void Initialize(IAudioManager audioManager, int port = 8000)
+        public ServiceManager(
+            ILocalAIService aiService, 
+            ISTTService sttService, 
+            ITTSService ttsService,
+            ICloudService cloudService,
+            IFastAPIService fastAPIService            
+            )
         {
             if (_initialized) return;
 
             lock (_lock)
             {
-                if (_initialized) return; 
+                if (_initialized) return;
 
-                _audioManager = audioManager;
-                _port = port;
+                Logger.Log("Initializing..", this, true);
+                _aiService = aiService;
+                _sttService = sttService;
+                _ttsService = ttsService;
 
-                _services = new List<ServiceBase>();
+                _cloudService = cloudService;
 
-                _aiService = new AIService(port);
-                UIHooks.SplashLog("Starting AIService");
-                Services.Add(_aiService);
+                _fastAPIService = fastAPIService;
 
-                _sttService = new STTService(audioManager, port);
-                UIHooks.SplashLog("Starting STTService");
-                Services.Add(_sttService);
+                _services = new List<object>();
 
 
-                _ttsService = new TTSService(audioManager, port);
-                UIHooks.SplashLog("Starting TTSService");
-                Services.Add(_ttsService);
-
-
-                foreach (var service in _services)
-                {
-                    service.OnServiceEvent += OnServiceEvent;
-                }
-
+                Initialize();
 
                 _initialized = true;
             }
@@ -66,24 +63,45 @@ namespace AIHomeStudio.Utilities
 
         #region Events
 
-        public static event EventHandler<ServiceEventArgs> OnServiceEvent;
+        public event EventHandler<ServiceEventArgs> OnServiceEvent;
 
         #endregion
 
         #region Properties
 
-        public static int FastAPIPort => _port;
 
-
-
-        public static List<ServiceBase> Services => _services ?? throw new InvalidOperationException("ServiceManager not initialized.");
+        public List<object> Services => _services ?? throw new InvalidOperationException("ServiceManager not initialized.");
 
         
-        public static AIService AIService => _aiService ?? throw new InvalidOperationException("ServiceManager not initialized.");
-        public static STTService STTService => _sttService ?? throw new InvalidOperationException("ServiceManager not initialized.");
-        public static TTSService TTSService => _ttsService ?? throw new InvalidOperationException("ServiceManager not initialized.");
+        public ILocalAIService AIService => _aiService ?? throw new InvalidOperationException("ServiceManager not initialized.");
+        public ISTTService STTService => _sttService ?? throw new InvalidOperationException("ServiceManager not initialized.");
+        public ITTSService TTSService => _ttsService ?? throw new InvalidOperationException("ServiceManager not initialized.");
 
-        public static IAudioManager AudioManager => _audioManager ?? throw new InvalidOperationException("ServiceManager not initialized.");
+
+        public ICloudService CloudService => _cloudService ?? throw new InvalidOperationException("ServiceManager not initialized.");
+        public IFastAPIService FastAPIService => _fastAPIService ?? throw new InvalidOperationException("ServiceManager not initialized.");
+        
+
+
+
+
+        #endregion
+
+        #region Methods
+        private void Initialize()
+        {
+            Logger.Log("Initializing ServiceManager", this, true);
+
+            Services.Add(_aiService);
+            Services.Add(_sttService);            
+            Services.Add(_ttsService);
+
+            foreach (var service in _services)
+            {
+                if (service is APIServiceBase serv)
+                    serv.OnServiceEvent += OnServiceEvent;
+            }
+        }
 
 
         #endregion

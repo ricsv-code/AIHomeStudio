@@ -2,7 +2,7 @@
 
 namespace AIHomeStudio.Utilities
 {
-    public static class ErrorHandler
+    public static class JsonErrorHandler
     {
         public static async Task<string> GetErrorMessageFromResponse(HttpResponseMessage response)
         {

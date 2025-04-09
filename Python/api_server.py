@@ -2,17 +2,21 @@
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
-import logging
+from services import AIService, STTService, TTSService
+
+import logging, threading, time, os, signal
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
-
-app = FastAPI()
-
-from services import AIService, STTService, TTSService
 
 ai_service = AIService()
 stt_service = STTService()
 tts_service = TTSService()
+
+app = FastAPI()
+
+logging.info("FastAPI server started.");
+
+
 
 
 @app.exception_handler(Exception)
@@ -20,6 +24,15 @@ async def global_exception_handler(request: Request, exc: Exception):
 
     logging.error(f"Unhandled error in api_server: {exc}")
     return JSONResponse(status_code=500, content={"detail": "An unexpected error occurred."})
+
+
+@app.post("/shutdown")
+async def shutdown():
+    def shutdown_server():
+        time.sleep(1)  
+        os.kill(os.getpid(), signal.SIGTERM)    
+    threading.Thread(target=shutdown_server).start()
+    return {"detail": "FastAPI server is shutting down..."}
 
 
 ### AI-endpoints

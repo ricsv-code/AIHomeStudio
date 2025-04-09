@@ -6,7 +6,7 @@ from fastapi import Request, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse, JSONResponse
 from typing import Dict, List, Optional, Any, AsyncGenerator, Callable
 
-logging.basicConfig(level=logging.INFO, format='%([ levelname ])s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
 
 
 class ServiceBase:
@@ -79,6 +79,8 @@ class ServiceBase:
     async def _unload_model(self) -> None:
         pass
 
+
+### AI Service
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig

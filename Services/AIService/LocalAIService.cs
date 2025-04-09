@@ -6,13 +6,14 @@ using AIHomeStudio.Models;
 
 namespace AIHomeStudio.Services
 {
-    public class AIService : ServiceBase
+    public class LocalAIService : APIServiceBase, ILocalAIService
     {
-        private string _baseUrl = "http://localhost:8000";
 
-        public AIService(int port) : base(ServiceType.AI, port)
+
+        public LocalAIService() : base(ServiceType.AI)
         {
-            _baseUrl = $"http://localhost:{port}";
+            Logger.Log("Initializing..", this, true);
+
         }
 
         public async Task AskAIStreamedAsync(
@@ -50,6 +51,7 @@ namespace AIHomeStudio.Services
 
         public async Task<List<string>?> GetAvailableModelsAsync()
         {
+            Logger.Log("Loading AI models..", this, true);
             return await GetModelsAsync("/ai/models");
         }
     }

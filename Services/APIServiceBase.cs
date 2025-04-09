@@ -6,7 +6,7 @@ using AIHomeStudio.Models;
 
 namespace AIHomeStudio.Services
 {
-    public abstract class ServiceBase
+    public abstract class APIServiceBase
     {
 
         public event EventHandler<ServiceEventArgs>? OnServiceEvent;
@@ -15,16 +15,21 @@ namespace AIHomeStudio.Services
         protected readonly HttpClient _httpClient = new();
         protected string _baseUrl = "http://localhost:8000";
 
-        protected ServiceBase(ServiceType type, int port)
+
+        protected APIServiceBase(ServiceType type)
         {
+            Logger.Log($"Starting {type.ToString()}", this, true);
+
             ServiceType = type;
-            _baseUrl = $"http://localhost:{port}";
+
+
         }
 
 
         protected void RaiseEvent(ServiceEventType eventType, string message)
         {
             OnServiceEvent?.Invoke(this, new ServiceEventArgs(eventType, $"[{ServiceType}] {message}"));
+            Logger.Log($"[{ServiceType}] {message}", this, false);
         }
 
 
@@ -55,7 +60,7 @@ namespace AIHomeStudio.Services
                 using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 if (!response.IsSuccessStatusCode)
                 {
-                    string errorMessage = await ErrorHandler.GetErrorMessageFromResponse(response);
+                    string errorMessage = await JsonErrorHandler.GetErrorMessageFromResponse(response);
                     RaiseEvent(ServiceEventType.Error, $"Request failed: {errorMessage}");
                     return null;
                 }
@@ -108,7 +113,7 @@ namespace AIHomeStudio.Services
                 using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 if (!response.IsSuccessStatusCode)
                 {
-                    string errorMessage = await ErrorHandler.GetErrorMessageFromResponse(response);
+                    string errorMessage = await JsonErrorHandler.GetErrorMessageFromResponse(response);
                     RaiseEvent(ServiceEventType.Error, $"Streaming request failed: {errorMessage}");
                     return null;
                 }
@@ -177,7 +182,7 @@ namespace AIHomeStudio.Services
                 using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 if (!response.IsSuccessStatusCode)
                 {
-                    string errorMessage = await ErrorHandler.GetErrorMessageFromResponse(response);
+                    string errorMessage = await JsonErrorHandler.GetErrorMessageFromResponse(response);
                     RaiseEvent(ServiceEventType.Error, $"Model load failed: {errorMessage}");
                     return false;
                 }

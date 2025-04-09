@@ -8,7 +8,7 @@ namespace AIHomeStudio
         {
             InitializeComponent();
 
-            UIHooks.OnSplashUpdate = UpdateStatus;
+            Logger.OnSplashUpdate = UpdateStatus;
         }
 
         public void UpdateStatus(string message)

@@ -26,7 +26,9 @@ namespace AIHomeStudio.Services
         None,
         AI,
         STT,
-        TTS
+        TTS,
+        API,
+        Cloud
     }
 
     public enum ServiceEventType

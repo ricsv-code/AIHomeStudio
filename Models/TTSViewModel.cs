@@ -5,6 +5,14 @@ namespace AIHomeStudio.Models
     public class TTSViewModel : ViewModelBase
     {
 
+        private ServiceManager _serviceManager;
+
+        public TTSViewModel(ServiceManager serviceManager)
+        {
+            _serviceManager = serviceManager;
+        }
+
+
 
 
         // LOADING
@@ -41,7 +49,7 @@ namespace AIHomeStudio.Models
             {
                 if (SetProperty(ref _chosenModel, value))
                 {
-                    _ = ServiceManager.TTSService.LoadModelAsync(value);
+                    _ = _serviceManager.TTSService.LoadModelAsync(value);
                 }
             }
         }

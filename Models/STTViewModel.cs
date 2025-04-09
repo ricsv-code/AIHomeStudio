@@ -5,6 +5,14 @@ namespace AIHomeStudio.Models
     public class STTViewModel : ViewModelBase
     {
 
+        private ServiceManager _serviceManager;
+
+        public STTViewModel(ServiceManager serviceManager)
+        {
+            _serviceManager = serviceManager;
+        }
+
+
 
         private string _currentSpeech = string.Empty;
         public string CurrentSpeech
@@ -50,7 +58,7 @@ namespace AIHomeStudio.Models
             {
                 if (SetProperty(ref _chosenModel, value))
                 {
-                    _ = ServiceManager.STTService.LoadModelAsync(value);
+                    _ = _serviceManager.STTService.LoadModelAsync(value);
                 }
             }
         }

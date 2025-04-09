@@ -5,14 +5,17 @@ using AIHomeStudio.Utilities;
 
 namespace AIHomeStudio.Services
 {
-    public class TTSService : ServiceBase
+    public class TTSService : APIServiceBase, ITTSService
     {
-        private readonly IAudioManager _audioManager;
+        private readonly IAudioPlayerService _audioPlayer;
         private string _outputFilePath => Path.Combine(FileSystem.CacheDirectory, "output.wav");
 
-        public TTSService(IAudioManager audioManager, int port) : base(ServiceType.TTS, port)
+        public TTSService(IAudioPlayerService audioPlayer) : base(ServiceType.TTS)
         {
-            _audioManager = audioManager;
+
+            Logger.Log("Initializing..", this, true);
+            _audioPlayer = audioPlayer;           
+
         }
 
         public async Task<List<string>?> GetAvailableModelsAsync()
@@ -22,6 +25,7 @@ namespace AIHomeStudio.Services
 
         public async Task<bool> LoadModelAsync(string modelName, Action<string>? onProgress = null)
         {
+            Logger.Log("Loading TTS models..", this, true);
             string modelPath = Path.Combine(AppContext.BaseDirectory, "Python", "tts_models", modelName);
             var payload = new { path = modelPath };
             return await LoadModelStreamingAsync("/tts/load", payload, onProgress);
@@ -44,9 +48,7 @@ namespace AIHomeStudio.Services
         {
             try
             {
-                await using var stream = File.OpenRead(path);
-                var player = _audioManager.CreatePlayer(stream);
-                player.Play();
+                await _audioPlayer.PlayAudioAsync(path);
                 RaiseEvent(ServiceEventType.Info, "Talking..");
             }
             catch (Exception ex)
@@ -84,7 +86,7 @@ namespace AIHomeStudio.Services
                 using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 if (!response.IsSuccessStatusCode)
                 {
-                    string errorMessage = await ErrorHandler.GetErrorMessageFromResponse(response);
+                    string errorMessage = await JsonErrorHandler.GetErrorMessageFromResponse(response);
                     RaiseEvent(ServiceEventType.Error, $"Request failed: {errorMessage}");
                     return null;
                 }

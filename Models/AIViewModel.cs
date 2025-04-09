@@ -5,8 +5,11 @@ namespace AIHomeStudio.Models
     public class AIViewModel : ViewModelBase
     {
 
-
-
+        private ServiceManager _serviceManager;
+        public AIViewModel(ServiceManager serviceManager)
+        {
+            _serviceManager = serviceManager;
+        }
         // PARAMS
 
         private float _temperature = 0.7f;
@@ -74,7 +77,7 @@ namespace AIHomeStudio.Models
             set {
                 if (SetProperty(ref _chosenModel, value))
                 {
-                    _ = ServiceManager.AIService.LoadModelAsync(value);
+                    _ = _serviceManager.AIService.LoadModelAsync(value);
                 }
             }
         }

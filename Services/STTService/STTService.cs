@@ -7,7 +7,7 @@ using System.Text;
 
 namespace AIHomeStudio.Services
 {
-    public class STTService : ServiceBase
+    public class STTService : APIServiceBase, ISTTService
     {
         private readonly IAudioManager _audioManager;
         private IAudioRecorder? _recorder;
@@ -17,13 +17,15 @@ namespace AIHomeStudio.Services
 
         public bool IsRecording => _recorder?.IsRecording ?? false;
 
-        public STTService(IAudioManager audioManager, int port) : base(ServiceType.STT, port)
+        public STTService(IAudioManager audioManager) : base(ServiceType.STT)
         {
+            Logger.Log("Initializing..", this, true);
             _audioManager = audioManager;
         }
 
         public async Task<List<string>?> GetAvailableModelsAsync()
         {
+            Logger.Log("Loading STT models..", this, true);
             return await GetModelsAsync("/stt/models");
         }
 
@@ -149,7 +151,7 @@ namespace AIHomeStudio.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    string errorMessage = await ErrorHandler.GetErrorMessageFromResponse(response);
+                    string errorMessage = await JsonErrorHandler.GetErrorMessageFromResponse(response);
                     RaiseEvent(ServiceEventType.Error, $"Stream API error: {errorMessage}");
                     return;
                 }

@@ -16,9 +16,9 @@ namespace AIHomeStudio
         private bool _isAwaitingResponse;
         private TTSBufferManager _ttsBuffer;
 
-        private readonly Initializer _initializer = new();
 
-
+        private AppConfiguration _config;
+        private ServiceManager _serviceManager;
 
 
         #endregion
@@ -32,9 +32,14 @@ namespace AIHomeStudio
         #endregion
 
         #region Constructor
-        public AIHomeStudioCore()
+        public AIHomeStudioCore(AppConfiguration config, ServiceManager serviceManager)
         {
+            Logger.Log("Initializing..", this, true);
+
             SendCommand = new RelayCommand(Send);
+
+            _config = config;
+            _serviceManager = serviceManager;
 
             StartListeningCommand = new RelayCommand(async () => await StartListeningAsync());
             StopListeningCommand = new RelayCommand(async () => await StopListeningAsync());
@@ -46,10 +51,10 @@ namespace AIHomeStudio
 
         #region Properties
 
-        public STTViewModel STT { get; private set; } = new();
-        public TTSViewModel TTS { get; private set; } = new();
-        public ChatViewModel Chat { get; private set; } = new();
-        public AIViewModel AI { get; private set; } = new();
+        public STTViewModel STT { get; private set; }
+        public TTSViewModel TTS { get; private set; }
+        public ChatViewModel Chat { get; private set; } 
+        public AIViewModel AI { get; private set; }
 
 
         #endregion
@@ -58,13 +63,56 @@ namespace AIHomeStudio
 
         #region Methods
 
+
+        // init
+        public async Task InitializeAsync(int port)
+        {
+            STT = new STTViewModel(_serviceManager);
+            TTS = new TTSViewModel(_serviceManager);
+            Chat = new ChatViewModel();
+            AI = new AIViewModel(_serviceManager);
+
+
+            await _serviceManager.FastAPIService.StartAsync(port);
+
+
+            
+            AI.AvailableModels = await _serviceManager.AIService.GetAvailableModelsAsync();
+
+            STT.AvailableModels = await _serviceManager.STTService.GetAvailableModelsAsync();
+
+            TTS.AvailableModels = await _serviceManager.TTSService.GetAvailableModelsAsync();
+
+
+            Logger.Log("All local models loaded.", this, true);
+
+            Chat.UserPrefix = "GPT4 Correct User: ";
+            Chat.AIPrefix = "GPT4 Correct Assistant: ";
+            Chat.EndOfTurnToken = "<|end_of_turn|>";
+
+            _ttsBuffer = new TTSBufferManager();
+            _ttsBuffer.OnBufferReady += TTSBufferManager_OnBufferReady;
+
+
+            _serviceManager.OnServiceEvent -= ServiceManager_OnServiceEvent;
+            _serviceManager.OnServiceEvent += ServiceManager_OnServiceEvent;
+
+
+            AI.ChosenModel = AI.AvailableModels?.FirstOrDefault();
+            STT.ChosenModel = STT.AvailableModels?.FirstOrDefault();
+            TTS.ChosenModel = TTS.AvailableModels?.FirstOrDefault();
+
+        }
+
+
+
         // Buttons
 
 
 
         private async void Send(object sender)
         {
-            await ServiceManager.AIService.AskAIStreamedAsync(
+            await _serviceManager.AIService.AskAIStreamedAsync(
                 Chat.CurrentPrompt, 
                 AI.SystemPrompt, 
                 AI.Temperature,
@@ -76,12 +124,12 @@ namespace AIHomeStudio
         }
         private async Task StartListeningAsync()
         {
-            await ServiceManager.STTService.StartListeningAsync();
+            await _serviceManager.STTService.StartListeningAsync();
         }
 
         private async Task StopListeningAsync()
         {
-            await ServiceManager.STTService.StopListeningAsync();
+            await _serviceManager.STTService.StopListeningAsync();
         }
 
 
@@ -90,42 +138,13 @@ namespace AIHomeStudio
 
 
 
-        // init
-        public async Task InitializeAsync(int port)
-        {
 
-            await _initializer.InitializeAllAsync(AI, STT, TTS, AudioManager.Current, port);
-
-
-            Chat.UserPrefix = "GPT4 Correct User: ";
-            Chat.AIPrefix = "GPT4 Correct Assistant: ";
-            Chat.EndOfTurnToken = "<|end_of_turn|>";
-
-
-            _ttsBuffer = new TTSBufferManager();
-
-            _ttsBuffer.OnBufferReady += TTSBufferManager_OnBufferReady;
-
-
-
-            ServiceManager.OnServiceEvent -= ServiceManager_OnServiceEvent;
-            ServiceManager.OnServiceEvent += ServiceManager_OnServiceEvent;
-
-
-
-
-
-            AI.ChosenModel = AI.AvailableModels?.FirstOrDefault();
-            STT.ChosenModel = STT.AvailableModels?.FirstOrDefault();
-            TTS.ChosenModel = TTS.AvailableModels?.FirstOrDefault();
-            
-        }
 
 
         // ServiceEvents
         private void ServiceManager_OnServiceEvent(object? sender, Services.ServiceEventArgs e)
         {
-            if (sender is not ServiceBase service)
+            if (sender is not APIServiceBase service)
                 return;
 
             if (e.EventType == ServiceEventType.Error)
@@ -273,14 +292,15 @@ namespace AIHomeStudio
         // TTS buffer
         private async void TTSBufferManager_OnBufferReady(object? sender, string e)
         {
-            await ServiceManager.TTSService.SpeakAsync(e);
+            await _serviceManager.TTSService.SpeakAsync(e);
         }
 
 
         // clean
         public void Cleanup()
         {
-            _initializer.Cleanup();
+
+
         }
 
 
