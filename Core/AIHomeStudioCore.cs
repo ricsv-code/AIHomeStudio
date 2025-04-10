@@ -75,7 +75,6 @@ namespace AIHomeStudio
 
             await _serviceManager.FastAPIService.StartAsync(port);
 
-
             
             AI.AvailableModels = await _serviceManager.AIService.GetAvailableModelsAsync();
 
@@ -85,6 +84,7 @@ namespace AIHomeStudio
 
 
             Logger.Log("All local models loaded.", this, true);
+
 
             Chat.UserPrefix = "GPT4 Correct User: ";
             Chat.AIPrefix = "GPT4 Correct Assistant: ";

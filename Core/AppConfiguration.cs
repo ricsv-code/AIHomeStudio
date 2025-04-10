@@ -20,5 +20,10 @@ namespace AIHomeStudio
         public string MauiStorageKey { get; set; }
 
 
+        public string LocalAPIBaseUrl { get; set; } = "http://localhost:8000"; 
+        public string CloudAPIBaseUrl { get; set; } = "http://your-cloud-vm.com:8000";
+        public string CurrentAPIBaseUrl { get; set; }
+
+
     }
 }

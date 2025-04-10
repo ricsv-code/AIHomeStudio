@@ -9,6 +9,8 @@ namespace AIHomeStudio.Services
 {
     public class STTService : APIServiceBase, ISTTService
     {
+
+        #region Fields
         private readonly IAudioManager _audioManager;
         private IAudioRecorder? _recorder;
         private CancellationTokenSource? _cts;
@@ -17,12 +19,19 @@ namespace AIHomeStudio.Services
 
         public bool IsRecording => _recorder?.IsRecording ?? false;
 
+        #endregion
+
+        #region Constructor
+
         public STTService(IAudioManager audioManager) : base(ServiceType.STT)
         {
             Logger.Log("Initializing..", this, true);
             _audioManager = audioManager;
         }
 
+        #endregion
+
+        #region Methods
         public async Task<List<string>?> GetAvailableModelsAsync()
         {
             Logger.Log("Loading STT models..", this, true);
@@ -191,5 +200,7 @@ namespace AIHomeStudio.Services
             RaiseEvent(ServiceEventType.Info, "End of speech detected.");
             StopListeningAsync().ConfigureAwait(false).GetAwaiter().GetResult();
         }
+
+        #endregion
     }
 }

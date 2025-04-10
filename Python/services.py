@@ -20,7 +20,7 @@ class ServiceBase:
         try:
             if not os.path.isdir(self.models_dir):
                 logging.warning(
-                    f"[{self.service_name}] Models directory not found: {self.models_dir}"
+                    f"[{self.service_name} PY] Models directory not found: {self.models_dir}"
                 )
                 return {}
             for name in os.listdir(self.models_dir):
@@ -28,12 +28,12 @@ class ServiceBase:
                 if os.path.isdir(path):
                     models[name] = path
             logging.info(
-                f"[{self.service_name}] Discovered models: {list(models.keys())}"
+                f"[{self.service_name} PY] Discovered models: {list(models.keys())}"
             )
             return models
         except Exception as e:
             logging.error(
-                f"[{self.service_name}] Error discovering models: {e}\n{traceback.format_exc()}"
+                f"[{self.service_name} PY] Error discovering models: {e}\n{traceback.format_exc()}"
             )
             return {}
 
@@ -50,29 +50,29 @@ class ServiceBase:
 
         async def load_stream() -> AsyncGenerator[str, None]:
             try:
-                yield f"[{self.service_name}] Checking for existing model...\n"
+                yield f"[{self.service_name} PY] Checking for existing model...\n"
                 await self._unload_model()
-                yield f"[{self.service_name}] Previous model cleared.\n"
+                yield f"[{self.service_name} PY] Previous model cleared.\n"
 
                 if not os.path.exists(model_path):
                     error_message: str = (
-                        f"[{self.service_name}] Model path not found: {model_path}"
+                        f"[{self.service_name} PY] Model path not found: {model_path}"
                     )
                     logging.error(error_message)
                     yield error_message + "\n"
                     return
 
-                yield f"[{self.service_name}] Loading model from {model_path}...\n"
+                yield f"[{self.service_name} PY] Loading model from {model_path}...\n"
                 await load_function(self, model_path, *load_args)
-                yield f"[{self.service_name}] Model loaded successfully.\n"
+                yield f"[{self.service_name} PY] Model loaded successfully.\n"
 
             except Exception as e:
                 error_message: str = (
-                    f"[ERROR] Failed to load model: {e}\n{traceback.format_exc()}"
+                    f"[ERROR] [Py] Failed to load model: {e}\n{traceback.format_exc()}"
                 )
                 logging.error(error_message)
                 yield error_message + "\n"
-                raise HTTPException(status_code=500, detail="Failed to load model.")
+                raise HTTPException(status_code=500, detail="[Py] Failed to load model.")
 
         return StreamingResponse(load_stream(), media_type="text/plain")
 
@@ -197,7 +197,7 @@ class STTService(ServiceBase):
 
     async def stream_transcription(self, file: UploadFile) -> AsyncGenerator[str, None]:
         if self.active_model is None:
-            error_message: str = "[STTService] No model loaded.\n"
+            error_message: str = "[STT] [Py] No model loaded.\n"
             logging.error(error_message)
             yield error_message
             return
@@ -243,7 +243,6 @@ class TTSService(ServiceBase):
         parts: List[str] = path.split("\\")
         model_key: str = parts[-1]
         identifier = model_key.replace("--", "/")
-        logging.error(f"TTS MODEL IDENTIFIER: {identifier}")
         self.active_model = TTS(identifier, progress_bar=False, gpu=False)
 
 

@@ -7,13 +7,23 @@ namespace AIHomeStudio.Services
 {
     public class FastAPIService : IFastAPIService, IDisposable
     {
+
+        #region Fields
+
         private Process? _fastApiProcess;
         private int _port;
 
+        #endregion
+
+        #region Constructor
         public FastAPIService(int port = 8000)
         {
             _port = port;
         }
+
+        #endregion
+
+        #region Methods
 
         public async Task StartAsync(int port)
         {
@@ -263,5 +273,7 @@ namespace AIHomeStudio.Services
         {
             Dispose(false);
         }
+
+        #endregion
     }
 }

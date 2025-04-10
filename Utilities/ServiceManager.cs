@@ -11,7 +11,7 @@ namespace AIHomeStudio.Utilities
         private readonly object _lock = new();
 
 
-        private ILocalAIService? _aiService;
+        private IAIService? _aiService;
         private ISTTService? _sttService;
         private ITTSService? _ttsService;
         private ICloudService? _cloudService;
@@ -27,7 +27,7 @@ namespace AIHomeStudio.Utilities
         #region Constructor
 
         public ServiceManager(
-            ILocalAIService aiService, 
+            IAIService aiService, 
             ISTTService sttService, 
             ITTSService ttsService,
             ICloudService cloudService,
@@ -73,7 +73,7 @@ namespace AIHomeStudio.Utilities
         public List<object> Services => _services ?? throw new InvalidOperationException("ServiceManager not initialized.");
 
         
-        public ILocalAIService AIService => _aiService ?? throw new InvalidOperationException("ServiceManager not initialized.");
+        public IAIService AIService => _aiService ?? throw new InvalidOperationException("ServiceManager not initialized.");
         public ISTTService STTService => _sttService ?? throw new InvalidOperationException("ServiceManager not initialized.");
         public ITTSService TTSService => _ttsService ?? throw new InvalidOperationException("ServiceManager not initialized.");
 

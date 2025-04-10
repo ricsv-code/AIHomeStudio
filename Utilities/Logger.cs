@@ -24,11 +24,7 @@ namespace AIHomeStudio.Utilities
                 OnSplashUpdate?.Invoke(msg);
         }
 
-        public static void DebugLog(string msg, object sender, bool wdup = false)
-        {
-            string name = sender.GetType().Name;
-            Debug.WriteLine($"[ {name} ] {msg}");
-        }
+
 
     }
 }

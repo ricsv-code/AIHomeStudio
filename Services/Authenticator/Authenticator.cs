@@ -6,6 +6,9 @@ using System.Net.Http.Headers;
 using System.Text.Json; 
 using System.Threading.Tasks;
 
+
+// TODO: Clean up unused / sloppy code
+
 public interface IAuthenticator
 {
     Task AuthenticateRequest(HttpRequestMessage request);
@@ -75,7 +78,7 @@ public class OAuth2Authenticator : IAuthenticator
             .Replace('/', '_');
     }
 
-    // Metod för att generera Code Challenge (PKCE)
+
     private string GenerateCodeChallenge(string codeVerifier)
     {
         using (var sha256 = System.Security.Cryptography.SHA256.Create())
@@ -89,7 +92,6 @@ public class OAuth2Authenticator : IAuthenticator
         }
     }
 
-    // Metod för att initiera OAuth 2.0-flödet (för webbflöden)
     public string GetAuthorizationUrl()
     {
         if (string.IsNullOrEmpty(_authorizationEndpoint))
@@ -103,14 +105,13 @@ public class OAuth2Authenticator : IAuthenticator
         var authorizationUrl = $"{_authorizationEndpoint}?" +
                                  $"client_id={_clientId}&" +
                                  $"response_type=code&" +
-                                 $"redirect_uri=YOUR_REDIRECT_URI&" + // setup redirect URI
+                                 $"redirect_uri=YOUR_REDIRECT_URI&" + 
                                  $"code_challenge={_codeChallenge}&" +
                                  $"code_challenge_method=S256";
 
         return authorizationUrl;
     }
 
-    // Metod för att hämta access token (används av AuthenticateRequest)
     private async Task GetAccessToken(string authorizationCode = null)
     {
         try
@@ -182,7 +183,7 @@ public class OAuth2Authenticator : IAuthenticator
         }
     }
 
-    // Metod för att hämta ny access token med refresh token
+
     public async Task RefreshAccessToken()
     {
         if (string.IsNullOrEmpty(_refreshToken))

@@ -9,23 +9,40 @@ namespace AIHomeStudio.Services
     public abstract class APIServiceBase
     {
 
-        public event EventHandler<ServiceEventArgs>? OnServiceEvent;
 
-        public ServiceType ServiceType { get; }
+
+        #region Fields
+
         protected readonly HttpClient _httpClient = new();
+
         protected string _baseUrl = "http://localhost:8000";
 
+        private readonly IAuthenticator _authenticator;
 
-        protected APIServiceBase(ServiceType type)
+        #endregion
+        protected APIServiceBase(ServiceType type, IAuthenticator authenticator = null)
         {
             Logger.Log($"Starting {type.ToString()}", this, true);
 
             ServiceType = type;
 
+            _authenticator = authenticator;
 
         }
 
+        #region Events
 
+        public event EventHandler<ServiceEventArgs>? OnServiceEvent;
+
+        #endregion
+
+        #region Properties
+        public ServiceType ServiceType { get; }
+
+        #endregion
+
+
+        #region Methods
         protected void RaiseEvent(ServiceEventType eventType, string message)
         {
             OnServiceEvent?.Invoke(this, new ServiceEventArgs(eventType, $"[{ServiceType}] {message}"));
@@ -35,11 +52,16 @@ namespace AIHomeStudio.Services
 
         protected async Task<T?> SendRequestAsync<T>(
             HttpMethod method, 
-            string endpoint, 
-            object? payload = null
+            string endpoint,             
+            object? payload = null,
+            string? baseUrlOverride = null,
+            bool useAuth = false
             )
             where T : class 
         {
+
+            string baseUrl = baseUrlOverride ?? _baseUrl;
+
             try
             {
                 string? json = null;
@@ -50,10 +72,14 @@ namespace AIHomeStudio.Services
                     content = new StringContent(json, Encoding.UTF8, "application/json");
                 }
 
-                var request = new HttpRequestMessage(method, $"{_baseUrl}{endpoint}")
+                var request = new HttpRequestMessage(method, $"{baseUrl}{endpoint}")
                 {
                     Content = content
                 };
+
+                if (useAuth && _authenticator != null)
+                    await _authenticator.AuthenticateRequest(request);
+
 
                 RaiseEvent(ServiceEventType.RequestSent, endpoint);
 
@@ -90,11 +116,15 @@ namespace AIHomeStudio.Services
             HttpMethod method, 
             string endpoint, 
             object? payload = null, 
-            Action<string>? onTokenReceived = null
+            Action<string>? onTokenReceived = null,
+            string? baseUrlOverride = null,
+            bool useAuth = false
             )
         {
             try
             {
+                string baseUrl = baseUrlOverride ?? _baseUrl;
+
                 string? json = null;
                 StringContent? content = null;
                 if (payload != null)
@@ -103,10 +133,13 @@ namespace AIHomeStudio.Services
                     content = new StringContent(json, Encoding.UTF8, "application/json");
                 }
 
-                var request = new HttpRequestMessage(method, $"{_baseUrl}{endpoint}")
+                var request = new HttpRequestMessage(method, $"{baseUrl}{endpoint}")
                 {
                     Content = content
                 };
+
+                if (useAuth && _authenticator != null)
+                    await _authenticator.AuthenticateRequest(request);
 
                 RaiseEvent(ServiceEventType.RequestSent, endpoint);
 
@@ -156,9 +189,9 @@ namespace AIHomeStudio.Services
         }
 
 
-        protected async Task<List<string>?> GetModelsAsync(string endpoint)
+        protected async Task<List<string>?> GetModelsAsync(string endpoint, string? baseUrlOverride = null, bool useAuth = false)
         {
-            StringListResponse? response = await SendRequestAsync<StringListResponse>(HttpMethod.Get, endpoint);
+            StringListResponse? response = await SendRequestAsync<StringListResponse>(HttpMethod.Get, endpoint, null, baseUrlOverride, useAuth);
             return response?.Models;
         }
 
@@ -166,16 +199,23 @@ namespace AIHomeStudio.Services
         protected async Task<bool> LoadModelStreamingAsync(
             string endpoint, 
             object payload, 
-            Action<string>? onProgress
+            Action<string>? onProgress,
+            string? baseUrlOverride = null,
+            bool useAuth = false
             )
         {
             try
             {
+                string baseUrl = baseUrlOverride ?? _baseUrl;
+
                 string? json = JsonConvert.SerializeObject(payload);
-                var request = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}{endpoint}")
+                var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}{endpoint}")
                 {
                     Content = new StringContent(json, Encoding.UTF8, "application/json")
                 };
+
+                if (useAuth && _authenticator != null)
+                    await _authenticator.AuthenticateRequest(request);
 
                 RaiseEvent(ServiceEventType.RequestSent, endpoint);
 
@@ -195,8 +235,10 @@ namespace AIHomeStudio.Services
                     var line = await reader.ReadLineAsync();
                     if (!string.IsNullOrWhiteSpace(line))
                     {
+
                         onProgress?.Invoke(line);
                         RaiseEvent(ServiceEventType.LoadProgress, line);
+
                     }
                 }
 
@@ -219,5 +261,7 @@ namespace AIHomeStudio.Services
                 return false;
             }
         }
+
+        #endregion
     }
 }

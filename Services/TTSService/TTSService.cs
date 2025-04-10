@@ -7,9 +7,15 @@ namespace AIHomeStudio.Services
 {
     public class TTSService : APIServiceBase, ITTSService
     {
+
+        #region Fields
         private readonly IAudioPlayerService _audioPlayer;
         private string _outputFilePath => Path.Combine(FileSystem.CacheDirectory, "output.wav");
 
+
+        #endregion
+
+        #region Constructor
         public TTSService(IAudioPlayerService audioPlayer) : base(ServiceType.TTS)
         {
 
@@ -17,6 +23,10 @@ namespace AIHomeStudio.Services
             _audioPlayer = audioPlayer;           
 
         }
+
+        #endregion
+
+        #region Methods
 
         public async Task<List<string>?> GetAvailableModelsAsync()
         {
@@ -122,5 +132,7 @@ namespace AIHomeStudio.Services
                 return null;
             }
         }
+
+        #endregion
     }
 }

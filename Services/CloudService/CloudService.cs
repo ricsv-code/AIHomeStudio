@@ -10,21 +10,27 @@ namespace AIHomeStudio.Services
 {
     public class CloudService : APIServiceBase, ICloudService
     {
-
+        #region Fields
         private AppConfiguration _config;
         private string _apiKeyStorageKey => _config.MauiStorageKey;
 
+
+        #endregion
+
+        #region Constructor
         public CloudService(IAuthenticator authenticator, AppConfiguration config) : base(ServiceType.Cloud)
         {
             Logger.Log("Initializing..", this, true);
             _config = config;
         }
 
+        #endregion
 
 
 
 
 
+        #region Methods
         public async Task<string> GetApiKeyAsync()
         {
             try
@@ -57,6 +63,8 @@ namespace AIHomeStudio.Services
                 }
             }
         }
+
+        #endregion
 
     }
 }
